@@ -1,0 +1,52 @@
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+import matplotlib as plt
+
+df = []
+#['PassengerId', 'Survived', 'Pclass', 'Name', 'Sex', 'Age', 'SibSp', 'Parch', 'Ticket', 'Fare', 'Cabin', 'Embarked']
+
+df = pd.read_csv('titanic_train.csv')
+print(df.info())
+
+df['Sex'] = df['Sex'].astype('category')
+df['Sex'] = df.Sex.cat.codes
+df['Embarked'] = df['Embarked'].astype('category')
+df['Embarked'] = df.Embarked.cat.codes
+
+features = ['Pclass', 'Sex', 'SibSp', 'Parch', 'Fare', 'Embarked']
+
+'''We do not know all the ages, and ages may be valuable.
+   Make a new tree to try and predict the ages of people on
+   the boat.'''
+
+def testAge(x):
+    if x < 10:
+        return 0 #0 is young
+    if x > 50:
+        return 1 #1 is old
+    else:
+        return 2 #adult
+
+##Next we shall split our df up into two subsidiaries, train and test.
+##Train has all df with ages, test applies ages to the df without ages.
+train, test = df[df['Age'].notnull()], df[df['Age'].isnull()]
+
+#train.loc[:,'Age'] = train.Age.astype(int)
+train.loc[:,'Age'] = train.loc[:,'Age'].apply(testAge)
+
+X = train[features]
+Y = train['Age']
+
+model = RandomForestClassifier()
+model.fit(X, Y)  # Model is now trained on the training df!
+predictions = model.predict(test[features])
+
+test.loc[:,'Age'] = predictions #Insert back in
+
+#Compile the data back together with ages complete
+data = [train, test]
+result = pd.concat(data)
+print(result.info())
+
+result.to_csv("titanic_with_ages.csv", mode = 'w', index=False)
